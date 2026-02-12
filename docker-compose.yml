@@ -40,19 +40,26 @@ services:
       - metastore
     environment:
       SERVICE_NAME: hiveserver2
-      SERVICE_OPTS: "-Dhive.metastore.uris=thrift://metastore:9083"
-      SKIP_SCHEMA_INIT: "true" #this is ignored for some reason :(
     ports:
       - "10000:10000"
     volumes:
       - ./data:/data
       - ./scripts:/scripts
-      #- ./hive-site.xml:/opt/hive/conf/hive-site.xml #hook setup https://docs.cloud.google.com/bigquery/docs/migration-assessment#configure-properties
-      #- ./tez-site.xml:/opt/hive/conf/tez-site.xml #setup to avoit rate limiting
-      - ./hive-hook/HiveMigrationAssessmentQueryLogsHooks_deploy.jar:/opt/hive-hook/HiveMigrationAssessmentQueryLogsHooks_deploy.jar #hook from https://github.com/google/hadoop-migration-assessment-tools/releases/tag/v1.0.2
+      - ./hive-site.xml:/opt/hive/conf/hive-site.xml
+      - ./tez-site.xml:/opt/hive/conf/tez-site.xml
+      - ./hive-hook/HiveMigrationAssessmentQueryLogsHooks_deploy.jar:/opt/hive-hook/HiveMigrationAssessmentQueryLogsHooks_deploy.jar
     user: "root"
     networks:
       - hive-net
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        export HIVE_CONF_DIR=/opt/hive/conf
+        echo "Waiting for metastore..."
+        sleep 10
+        echo "Starting HiveServer2..."
+        /opt/hive/bin/hive --service hiveserver2
 
 networks:
   hive-net: #needs to setup a netowork without underscore "_" character, otherwise beeline crashes ;e
